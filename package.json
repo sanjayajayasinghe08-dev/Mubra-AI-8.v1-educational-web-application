@@ -1,0 +1,9 @@
+{
+  "name": "mubra-ai-8v1",
+  "version": "1.0.0",
+  "description": "Mubra AI 8.v1 — A/L Chemistry Guru",
+  "engines": {
+    "node": ">=18.x"
+  },
+  "dependencies": {}
+}
