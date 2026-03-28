@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mubra AI 8.v1 — A/L Chemistry Guru</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&family=Noto+Sans+Sinhala:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- KaTeX -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+    onload="renderMathInElement(document.body, {delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              950: '#000D1A',
+              900: '#001020',
+              800: '#001530',
+              700: '#001F3F',
+              600: '#002A54',
+              500: '#003468',
+            },
+            gold: {
+              300: '#F0D060',
+              400: '#E8C840',
+              500: '#D4AF37',
+              600: '#B8942E',
+              700: '#9A7A25',
+            }
+          },
+          fontFamily: {
+            poppins: ['Poppins', 'Noto Sans Sinhala', 'sans-serif'],
+            sinhala: ['Noto Sans Sinhala', 'Poppins', 'sans-serif'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    :root {
+      --navy-950: #000D1A;
+      --navy-900: #001020;
+      --navy-800: #001530;
+      --navy-700: #001F3F;
+      --navy-600: #002A54;
+      --gold-500: #D4AF37;
+      --gold-400: #E8C840;
+      --gold-300: #F0D060;
+      --glass: rgba(0, 31, 63, 0.55);
+      --glass-border: rgba(212, 175, 55, 0.2);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Poppins', 'Noto Sans Sinhala', sans-serif;
+      background: var(--navy-950);
+      color: #e8edf5;
+    }
+
+    /* ── Background animated mesh ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(212,175,55,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 80% at 80% 90%, rgba(0,52,104,0.5) 0%, transparent 60%),
+        radial-gradient(ellipse 100% 100% at 50% 50%, #001020 0%, #000D1A 100%);
+      pointer-events: none;
+    }
+
+    /* Subtle grid texture */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(212,175,55,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,175,55,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+
+    /* ── Layout ── */
+    #app {
+      position: relative; z-index: 1;
+      display: flex; height: 100vh; width: 100vw;
+    }
+
+    /* ── Glassmorphism Sidebar ── */
+    #sidebar {
+      width: 280px; min-width: 280px;
+      height: 100vh;
+      background: rgba(0, 15, 30, 0.75);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border-right: 1px solid rgba(212,175,55,0.18);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+      transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+      z-index: 50;
+    }
+
+    #sidebar.hidden-mobile {
+      transform: translateX(-100%);
+      position: fixed;
+    }
+
+    /* Sidebar brand header */
+    .sidebar-brand {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid rgba(212,175,55,0.15);
+      background: linear-gradient(135deg, rgba(212,175,55,0.08), transparent);
+    }
+
+    .brand-logo {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .brand-icon {
+      width: 46px; height: 46px;
+      background: linear-gradient(135deg, rgba(212,175,55,0.15), rgba(212,175,55,0.05));
+      border: 1.5px solid rgba(212,175,55,0.35);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 0 18px rgba(212,175,55,0.3), inset 0 0 12px rgba(212,175,55,0.05);
+    }
+
+    .brand-icon svg {
+      width: 28px; height: 28px;
+      filter: drop-shadow(0 0 6px rgba(212,175,55,0.8));
+    }
+
+    .brand-name {
+      font-family: 'Poppins', sans-serif;
+      font-size: 18px; font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--gold-400);
+      text-shadow:
+        0 0 8px rgba(212,175,55,0.9),
+        0 0 20px rgba(212,175,55,0.6),
+        0 0 40px rgba(212,175,55,0.3);
+      animation: neonPulse 3s ease-in-out infinite;
+    }
+
+    .brand-version {
+      font-size: 9px; font-weight: 500;
+      color: rgba(212,175,55,0.55);
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    @keyframes neonPulse {
+      0%, 100% {
+        text-shadow:
+          0 0 8px rgba(212,175,55,0.9),
+          0 0 20px rgba(212,175,55,0.6),
+          0 0 40px rgba(212,175,55,0.3);
+      }
+      50% {
+        text-shadow:
+          0 0 12px rgba(212,175,55,1),
+          0 0 30px rgba(212,175,55,0.8),
+          0 0 60px rgba(212,175,55,0.5),
+          0 0 80px rgba(212,175,55,0.2);
+      }
+    }
+
+    .brand-version {
+      font-size: 9px; font-weight: 500;
+      color: rgba(212,175,55,0.5);
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .brand-tagline {
+      font-size: 9.5px; color: rgba(212,175,55,0.5);
+      font-weight: 400; margin-top: 6px;
+      letter-spacing: 0.4px;
+    }
+
+    /* Sidebar scroll area */
+    .sidebar-scroll {
+      flex: 1; overflow-y: auto; padding: 12px 0;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.3); border-radius: 2px; }
+
+    /* Section headers */
+    .sidebar-section-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 1.5px;
+      color: rgba(212,175,55,0.5); text-transform: uppercase;
+      padding: 14px 18px 6px;
+    }
+
+    /* Nav item */
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 18px; margin: 1px 8px;
+      border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 500; color: rgba(210,225,245,0.8);
+      transition: all 0.18s ease;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(212,175,55,0.08);
+      border-color: rgba(212,175,55,0.15);
+      color: var(--gold-400);
+    }
+
+    .nav-item.active {
+      background: rgba(212,175,55,0.12);
+      border-color: rgba(212,175,55,0.3);
+      color: var(--gold-400);
+    }
+
+    .nav-item .nav-icon {
+      width: 28px; height: 28px;
+      background: rgba(212,175,55,0.08);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0;
+    }
+
+    .nav-item.active .nav-icon {
+      background: rgba(212,175,55,0.2);
+    }
+
+    /* Past Papers grid */
+    .papers-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 4px; padding: 6px 10px;
+    }
+
+    .year-chip {
+      padding: 5px 4px; text-align: center;
+      font-size: 10.5px; font-weight: 500;
+      color: rgba(180,200,230,0.7);
+      background: rgba(0,31,63,0.6);
+      border: 1px solid rgba(212,175,55,0.1);
+      border-radius: 6px; cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .year-chip:hover {
+      background: rgba(212,175,55,0.12);
+      border-color: rgba(212,175,55,0.35);
+      color: var(--gold-400);
+      transform: scale(1.05);
+    }
+
+    .year-chip.recent {
+      border-color: rgba(212,175,55,0.25);
+      color: rgba(212,175,55,0.85);
+    }
+
+    /* Year chip popup menu */
+    .chip-popup {
+      display: none;
+      position: absolute;
+      top: -68px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,12,28,0.98);
+      border: 1px solid rgba(212,175,55,0.35);
+      border-radius: 8px;
+      padding: 5px 4px;
+      z-index: 9999;
+      min-width: 110px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6), 0 0 12px rgba(212,175,55,0.1);
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .year-chip:hover .chip-popup {
+      display: flex;
+    }
+
+    .chip-popup::after {
+      content: '';
+      position: absolute; bottom: -6px; left: 50%;
+      transform: translateX(-50%);
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid rgba(212,175,55,0.35);
+    }
+
+    .chip-popup-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 8px; border-radius: 5px;
+      font-size: 10px; font-weight: 500;
+      text-decoration: none; cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .chip-popup-btn:hover { background: rgba(212,175,55,0.12); }
+    .chip-popup-btn.paper { color: #7ec8f5; }
+    .chip-popup-btn.scheme { color: #88e888; }
+    .chip-popup-btn.ask { color: var(--gold-400); }
+
+    /* Sidebar Footer */
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(212,175,55,0.12);
+      background: rgba(0,10,20,0.4);
+    }
+
+    .footer-line {
+      font-size: 10px; color: rgba(150,170,200,0.55);
+      text-align: center; line-height: 1.6;
+    }
+
+    .footer-line span {
+      color: rgba(212,175,55,0.7); font-weight: 600;
+    }
+
+    /* ── Main Chat Area ── */
+    #main {
+      flex: 1; display: flex; flex-direction: column;
+      height: 100vh; overflow: hidden; position: relative;
+    }
+
+    /* Top bar */
+    #topbar {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px;
+      background: rgba(0,10,20,0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(212,175,55,0.12);
+      flex-shrink: 0;
+    }
+
+    #menu-btn {
+      display: none;
+      width: 34px; height: 34px;
+      background: rgba(212,175,55,0.1);
+      border: 1px solid rgba(212,175,55,0.2);
+      border-radius: 8px; cursor: pointer;
+      align-items: center; justify-content: center; font-size: 16px;
+      color: var(--gold-500); flex-shrink: 0;
+    }
+
+    .topbar-title {
+      flex: 1;
+    }
+
+    .topbar-title h1 {
+      font-size: 16px; font-weight: 700;
+      background: linear-gradient(135deg, var(--gold-400), #fff 60%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .topbar-title p {
+      font-size: 11px; color: rgba(150,175,210,0.6);
+      font-family: 'Noto Sans Sinhala', sans-serif;
+    }
+
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 12px;
+      background: rgba(0,200,100,0.08);
+      border: 1px solid rgba(0,200,100,0.2);
+      border-radius: 20px; font-size: 11px;
+      color: rgba(100,230,150,0.9); font-weight: 500;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      background: #00e070; border-radius: 50%;
+      box-shadow: 0 0 6px #00e070;
+      animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── Messages ── */
+    #chat-messages {
+      flex: 1; overflow-y: auto;
+      padding: 24px 20px;
+      display: flex; flex-direction: column; gap: 18px;
+      scroll-behavior: smooth;
+    }
+
+    #chat-messages::-webkit-scrollbar { width: 4px; }
+    #chat-messages::-webkit-scrollbar-track { background: transparent; }
+    #chat-messages::-webkit-scrollbar-thumb {
+      background: rgba(212,175,55,0.2); border-radius: 2px;
+    }
+
+    /* Welcome card */
+    .welcome-card {
+      max-width: 620px; margin: 20px auto;
+      background: rgba(0,21,48,0.7);
+      border: 1px solid rgba(212,175,55,0.2);
+      border-radius: 16px; padding: 28px 30px;
+      text-align: center;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 60px rgba(212,175,55,0.04);
+    }
+
+    .welcome-avatar {
+      width: 70px; height: 70px;
+      background: linear-gradient(135deg, rgba(212,175,55,0.2), rgba(212,175,55,0.05));
+      border: 2px solid rgba(212,175,55,0.35);
+      border-radius: 50%; margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 0 30px rgba(212,175,55,0.15);
+    }
+
+    .welcome-card h2 {
+      font-size: 20px; font-weight: 700;
+      color: var(--gold-400); margin-bottom: 6px;
+    }
+
+    .welcome-card p {
+      font-size: 13px; color: rgba(180,205,235,0.75);
+      line-height: 1.7; font-family: 'Noto Sans Sinhala', 'Poppins', sans-serif;
+    }
+
+    .quick-prompts {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      justify-content: center; margin-top: 18px;
+    }
+
+    .quick-prompt-btn {
+      padding: 7px 14px;
+      background: rgba(212,175,55,0.08);
+      border: 1px solid rgba(212,175,55,0.2);
+      border-radius: 20px; font-size: 11.5px;
+      color: rgba(212,175,55,0.85); cursor: pointer;
+      font-family: 'Noto Sans Sinhala', 'Poppins', sans-serif;
+      transition: all 0.18s ease;
+    }
+
+    .quick-prompt-btn:hover {
+      background: rgba(212,175,55,0.15);
+      border-color: rgba(212,175,55,0.4);
+      color: var(--gold-300);
+      transform: translateY(-1px);
+    }
+
+    /* Message bubbles */
+    .msg-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+
+    .msg-avatar.ai {
+      background: linear-gradient(135deg, rgba(212,175,55,0.25), rgba(212,175,55,0.08));
+      border: 1px solid rgba(212,175,55,0.3);
+      box-shadow: 0 0 12px rgba(212,175,55,0.12);
+    }
+
+    .msg-avatar.user {
+      background: linear-gradient(135deg, rgba(0,52,104,0.8), rgba(0,31,63,0.9));
+      border: 1px solid rgba(100,150,220,0.25);
+    }
+
+    .msg-bubble {
+      max-width: min(68%, 600px);
+      padding: 13px 16px; border-radius: 14px;
+      font-size: 13.5px; line-height: 1.75;
+      font-family: 'Noto Sans Sinhala', 'Poppins', sans-serif;
+      word-break: break-word;
+    }
+
+    .msg-bubble.user {
+      background: linear-gradient(135deg, #002A5E, #001F4A);
+      border: 1px solid rgba(80,130,210,0.25);
+      color: rgba(220,235,255,0.92);
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg-bubble.ai {
+      background: rgba(0,18,40,0.85);
+      border: 1px solid rgba(212,175,55,0.22);
+      color: rgba(215,228,248,0.92);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.3), 0 0 30px rgba(212,175,55,0.04);
+    }
+
+    /* Image in bubble */
+    .msg-bubble img {
+      max-width: 260px; max-height: 200px;
+      border-radius: 8px; margin-bottom: 8px; display: block;
+      border: 1px solid rgba(212,175,55,0.2);
+    }
+
+    /* Typing indicator */
+    .typing-bubble {
+      background: rgba(0,18,40,0.85);
+      border: 1px solid rgba(212,175,55,0.22);
+      border-radius: 14px; border-bottom-left-radius: 4px;
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    .typing-dot {
+      width: 7px; height: 7px;
+      background: var(--gold-500); border-radius: 50%;
+      animation: typingBounce 1.2s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* KaTeX and chemistry rendering */
+    .msg-bubble .katex { font-size: 1em; }
+    .msg-bubble .katex-display { margin: 10px 0; overflow-x: auto; }
+
+    /* ── Input Area ── */
+    #input-area {
+      padding: 14px 20px 16px;
+      background: rgba(0,8,20,0.7);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(212,175,55,0.1);
+      flex-shrink: 0;
+    }
+
+    /* Image preview */
+    #image-preview-wrap {
+      display: none; margin-bottom: 8px;
+      position: relative; width: fit-content;
+    }
+
+    #image-preview {
+      height: 64px; border-radius: 8px;
+      border: 1px solid rgba(212,175,55,0.3);
+      box-shadow: 0 0 12px rgba(212,175,55,0.1);
+    }
+
+    #remove-image {
+      position: absolute; top: -6px; right: -6px;
+      width: 18px; height: 18px;
+      background: #e03030; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; cursor: pointer; color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    /* Input row */
+    .input-row {
+      display: flex; align-items: flex-end; gap: 8px;
+      background: rgba(0,21,48,0.75);
+      border: 1px solid rgba(212,175,55,0.2);
+      border-radius: 14px; padding: 8px 10px;
+      transition: border-color 0.2s;
+    }
+
+    .input-row:focus-within {
+      border-color: rgba(212,175,55,0.45);
+      box-shadow: 0 0 20px rgba(212,175,55,0.08);
+    }
+
+    #user-input {
+      flex: 1; background: transparent; border: none; outline: none;
+      color: rgba(220,235,255,0.92); font-size: 13.5px;
+      font-family: 'Noto Sans Sinhala', 'Poppins', sans-serif;
+      resize: none; min-height: 22px; max-height: 140px;
+      line-height: 1.6; padding: 3px 4px;
+    }
+
+    #user-input::placeholder { color: rgba(130,155,185,0.5); }
+
+    .input-btn {
+      width: 36px; height: 36px; border-radius: 9px;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; transition: all 0.18s ease;
+      flex-shrink: 0;
+    }
+
+    #img-btn {
+      background: rgba(212,175,55,0.08);
+      border: 1px solid rgba(212,175,55,0.18);
+      color: rgba(212,175,55,0.7);
+    }
+
+    #img-btn:hover {
+      background: rgba(212,175,55,0.15);
+      color: var(--gold-400);
+    }
+
+    #send-btn {
+      background: linear-gradient(135deg, var(--gold-500), var(--gold-600, #b8942e));
+      color: var(--navy-900);
+      box-shadow: 0 2px 12px rgba(212,175,55,0.35);
+    }
+
+    #send-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 18px rgba(212,175,55,0.45);
+    }
+
+    #send-btn:disabled {
+      opacity: 0.45; cursor: not-allowed; transform: none;
+    }
+
+    .input-hint {
+      font-size: 10px; color: rgba(120,145,175,0.4);
+      text-align: center; margin-top: 8px;
+    }
+
+    /* ── Sidebar overlay (mobile) ── */
+    #sidebar-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 40;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
+    }
+
+    /* ── Scrollbar for whole page ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(212,175,55,0.2); border-radius: 2px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      #sidebar {
+        position: fixed; top: 0; left: 0; z-index: 50;
+        transform: translateX(-100%);
+      }
+
+      #sidebar.open {
+        transform: translateX(0);
+      }
+
+      #sidebar-overlay.open {
+        display: block;
+      }
+
+      #menu-btn { display: flex; }
+
+      .msg-bubble { max-width: 82%; font-size: 13px; }
+
+      #chat-messages { padding: 16px 12px; }
+
+      #input-area { padding: 10px 12px 12px; }
+    }
+
+    /* ── Gold divider ── */
+    .gold-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(212,175,55,0.3), transparent);
+      margin: 4px 16px;
+    }
+
+    /* Markdown-style formatting in AI messages */
+    .msg-bubble.ai strong { color: var(--gold-400); font-weight: 600; }
+    .msg-bubble.ai em { color: rgba(200,220,255,0.9); font-style: italic; }
+    .msg-bubble.ai code {
+      background: rgba(212,175,55,0.1);
+      border: 1px solid rgba(212,175,55,0.2);
+      padding: 1px 6px; border-radius: 4px;
+      font-size: 12px; font-family: 'Courier New', monospace;
+      color: var(--gold-300);
+    }
+    .msg-bubble.ai ul, .msg-bubble.ai ol {
+      padding-left: 18px; margin: 6px 0;
+    }
+    .msg-bubble.ai li { margin: 3px 0; }
+    .msg-bubble.ai h3, .msg-bubble.ai h4 {
+      color: var(--gold-400); font-weight: 600;
+      margin: 10px 0 4px;
+    }
+    .msg-bubble.ai hr {
+      border: none; border-top: 1px solid rgba(212,175,55,0.15);
+      margin: 10px 0;
+    }
+    .msg-bubble.ai blockquote {
+      border-left: 2px solid var(--gold-500);
+      padding-left: 12px; color: rgba(190,215,240,0.75);
+      margin: 8px 0;
+    }
+    .msg-bubble.ai table {
+      width: 100%; border-collapse: collapse; margin: 10px 0;
+      font-size: 12px;
+    }
+    .msg-bubble.ai th {
+      background: rgba(212,175,55,0.1);
+      border: 1px solid rgba(212,175,55,0.2);
+      padding: 6px 10px; color: var(--gold-400); text-align: left;
+    }
+    .msg-bubble.ai td {
+      border: 1px solid rgba(212,175,55,0.1);
+      padding: 5px 10px;
+    }
+  <style>
+    /* ── Login Screen ── */
+    #login-screen {
+      position: fixed; inset: 0; z-index: 9999;
+      background: var(--navy-950);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Poppins', sans-serif;
+    }
+    #login-screen::before {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 70% 60% at 30% 20%, rgba(212,175,55,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 70% at 70% 80%, rgba(0,52,104,0.4) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .login-card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 400px; margin: 20px;
+      background: rgba(0,15,32,0.88);
+      border: 1px solid rgba(212,175,55,0.28);
+      border-radius: 20px; padding: 42px 38px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 60px rgba(212,175,55,0.05), inset 0 1px 0 rgba(212,175,55,0.1);
+      animation: loginFadeIn 0.5s ease;
+    }
+    @keyframes loginFadeIn {
+      from { opacity:0; transform:translateY(24px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .login-wolf {
+      width:72px; height:72px;
+      background:rgba(212,175,55,0.08);
+      border:1.5px solid rgba(212,175,55,0.3);
+      border-radius:18px; margin:0 auto 18px;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 0 28px rgba(212,175,55,0.2);
+    }
+    .login-wolf svg { width:44px; height:44px; filter:drop-shadow(0 0 8px rgba(212,175,55,0.7)); }
+    .login-title {
+      text-align:center; margin-bottom:4px;
+      font-size:24px; font-weight:800;
+      letter-spacing:3px; text-transform:uppercase;
+      color:var(--gold-400);
+      text-shadow:0 0 20px rgba(212,175,55,0.7), 0 0 40px rgba(212,175,55,0.4);
+      animation:neonPulse 3s ease-in-out infinite;
+    }
+    .login-subtitle {
+      text-align:center; font-size:11px;
+      color:rgba(212,175,55,0.5); letter-spacing:0.5px; margin-bottom:30px;
+    }
+    .login-label {
+      font-size:11px; font-weight:600;
+      color:rgba(180,200,230,0.6); letter-spacing:0.8px;
+      text-transform:uppercase; margin-bottom:8px;
+    }
+    .login-input-wrap { position:relative; margin-bottom:16px; }
+    .login-input {
+      width:100%; padding:13px 46px 13px 16px;
+      background:rgba(0,21,48,0.8);
+      border:1px solid rgba(212,175,55,0.2);
+      border-radius:10px; outline:none;
+      color:rgba(220,235,255,0.92);
+      font-size:14px; font-family:'Poppins',sans-serif;
+      transition:border-color 0.2s, box-shadow 0.2s;
+      letter-spacing:2px;
+    }
+    .login-input:focus {
+      border-color:rgba(212,175,55,0.5);
+      box-shadow:0 0 0 3px rgba(212,175,55,0.08), 0 0 20px rgba(212,175,55,0.1);
+    }
+    .login-input.error {
+      border-color:rgba(240,80,80,0.6);
+      box-shadow:0 0 0 3px rgba(240,80,80,0.08);
+      animation:shake 0.35s ease;
+    }
+    @keyframes shake {
+      0%,100%{ transform:translateX(0); }
+      20%{ transform:translateX(-8px); }
+      40%{ transform:translateX(8px); }
+      60%{ transform:translateX(-5px); }
+      80%{ transform:translateX(5px); }
+    }
+    .pw-toggle {
+      position:absolute; right:13px; top:50%;
+      transform:translateY(-50%);
+      cursor:pointer; font-size:16px;
+      color:rgba(212,175,55,0.4); transition:color 0.15s; user-select:none;
+    }
+    .pw-toggle:hover { color:var(--gold-400); }
+    .login-btn {
+      width:100%; padding:13px;
+      background:linear-gradient(135deg, var(--gold-500), #b8942e);
+      border:none; border-radius:10px;
+      color:#001020; font-size:14px; font-weight:700;
+      font-family:'Poppins',sans-serif;
+      letter-spacing:1.5px; text-transform:uppercase;
+      cursor:pointer; box-shadow:0 4px 20px rgba(212,175,55,0.35);
+      transition:all 0.2s ease;
+    }
+    .login-btn:hover { transform:translateY(-2px); box-shadow:0 6px 28px rgba(212,175,55,0.5); }
+    .login-btn:active { transform:translateY(0); }
+    .login-error {
+      margin-top:12px; text-align:center;
+      font-size:12px; color:rgba(255,100,100,0.85); display:none;
+    }
+    .login-footer-text {
+      text-align:center; margin-top:22px;
+      font-size:10px; color:rgba(120,145,175,0.4);
+    }
+    .login-footer-text span { color:rgba(212,175,55,0.55); }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-wolf">
+      <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="18,38 28,10 40,36" fill="#D4AF37" opacity="0.9"/>
+        <polygon points="60,36 72,10 82,38" fill="#D4AF37" opacity="0.9"/>
+        <polygon points="22,36 28,18 36,34" fill="#B8942E" opacity="0.6"/>
+        <polygon points="64,34 72,18 78,36" fill="#B8942E" opacity="0.6"/>
+        <ellipse cx="50" cy="55" rx="32" ry="28" fill="#D4AF37" opacity="0.92"/>
+        <ellipse cx="50" cy="62" rx="18" ry="14" fill="#C49A2A" opacity="0.5"/>
+        <ellipse cx="38" cy="50" rx="5.5" ry="5" fill="#001F3F"/>
+        <ellipse cx="62" cy="50" rx="5.5" ry="5" fill="#001F3F"/>
+        <circle cx="39.5" cy="49" r="2" fill="#fff" opacity="0.6"/>
+        <circle cx="63.5" cy="49" r="2" fill="#fff" opacity="0.6"/>
+        <ellipse cx="50" cy="63" rx="5" ry="3.5" fill="#001F3F" opacity="0.85"/>
+        <path d="M44 68 Q50 73 56 68" stroke="#001F3F" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        <ellipse cx="50" cy="60" rx="10" ry="6" fill="#E8C840" opacity="0.2"/>
+      </svg>
+    </div>
+    <div class="login-title">MUBRA AI</div>
+    <div class="login-subtitle">⚗️ A/L Chemistry Intelligent Guru &middot; Version 8.v1</div>
+    <div class="login-label">🔐 Access Password</div>
+    <div class="login-input-wrap">
+      <input
+        type="password" id="pw-input" class="login-input"
+        placeholder="Enter password..."
+        onkeydown="if(event.key==='Enter') doLogin()"
+        autocomplete="current-password"
+      />
+      <span class="pw-toggle" onclick="togglePw()" id="pw-eye">👁️</span>
+    </div>
+    <button class="login-btn" onclick="doLogin()">🚀 &nbsp;Enter</button>
+    <div class="login-error" id="login-error">❌ Incorrect password. Please try again.</div>
+    <div class="login-footer-text">
+      <span>Powered by Mubra Webworks</span> &nbsp;·&nbsp; Main Sponsor: <span>Mubra Trading</span>
+    </div>
+  </div>
+</div>
+
+<div id="app" style="display:none;">
+
+  <!-- Sidebar Overlay (mobile) -->
+  <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside id="sidebar">
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="brand-logo">
+        <!-- Wolf SVG Logo -->
+        <div class="brand-icon">
+          <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="18,38 28,10 40,36" fill="#D4AF37" opacity="0.9"/>
+            <polygon points="60,36 72,10 82,38" fill="#D4AF37" opacity="0.9"/>
+            <polygon points="22,36 28,18 36,34" fill="#B8942E" opacity="0.6"/>
+            <polygon points="64,34 72,18 78,36" fill="#B8942E" opacity="0.6"/>
+            <ellipse cx="50" cy="55" rx="32" ry="28" fill="#D4AF37" opacity="0.92"/>
+            <ellipse cx="50" cy="62" rx="18" ry="14" fill="#C49A2A" opacity="0.5"/>
+            <ellipse cx="38" cy="50" rx="5.5" ry="5" fill="#001F3F"/>
+            <ellipse cx="62" cy="50" rx="5.5" ry="5" fill="#001F3F"/>
+            <circle cx="39.5" cy="49" r="2" fill="#fff" opacity="0.6"/>
+            <circle cx="63.5" cy="49" r="2" fill="#fff" opacity="0.6"/>
+            <ellipse cx="50" cy="63" rx="5" ry="3.5" fill="#001F3F" opacity="0.85"/>
+            <path d="M44 68 Q50 73 56 68" stroke="#001F3F" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="50" cy="60" rx="10" ry="6" fill="#E8C840" opacity="0.2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-name">MUBRA AI</div>
+          <div class="brand-version">Version 8.v1</div>
+        </div>
+      </div>
+      <div class="brand-tagline">⚗️ A/L Chemistry Intelligent Guru · Sri Lanka</div>
+    </div>
+
+    <!-- Nav -->
+    <div class="sidebar-scroll">
+
+      <div class="sidebar-section-label">🧪 Lessons</div>
+
+      <div class="nav-item active" onclick="setTopic('organic', this)" id="nav-organic">
+        <div class="nav-icon">🔗</div>
+        Organic Chemistry
+      </div>
+      <div class="nav-item" onclick="setTopic('inorganic', this)" id="nav-inorganic">
+        <div class="nav-icon">⚗️</div>
+        Inorganic Chemistry
+      </div>
+      <div class="nav-item" onclick="setTopic('physical', this)" id="nav-physical">
+        <div class="nav-icon">⚡</div>
+        Physical Chemistry
+      </div>
+
+      <div class="gold-divider" style="margin:10px 16px;"></div>
+
+      <div class="sidebar-section-label">📁 Past Paper Archives</div>
+
+      <div class="papers-grid" id="papers-grid">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="gold-divider" style="margin:10px 16px;"></div>
+
+      <div class="sidebar-section-label">⚡ Quick Actions</div>
+
+      <div class="nav-item" onclick="quickPrompt('2024 A/L Chemistry marking scheme ගැන විස්තර කරන්න')">
+        <div class="nav-icon">📝</div>
+        Marking Schemes
+      </div>
+      <div class="nav-item" onclick="quickPrompt('A/L Chemistry පිළිතුරු ලිවීමේ ක්‍රමය කොහොමද?')">
+        <div class="nav-icon">✏️</div>
+        Answer Writing Tips
+      </div>
+      <div class="nav-item" onclick="quickPrompt('Mubra AI ගැන මට කියන්න')">
+        <div class="nav-icon">ℹ️</div>
+        About Mubra AI
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <div class="footer-line">🌐 <span>Powered by Mubra Webworks</span></div>
+      <div class="footer-line">🏆 Main Sponsor: <span>Mubra Trading</span></div>
+      <div class="footer-line" style="margin-top:4px; font-size:9px; opacity:0.5;">
+        © 2025 Mubra AI · Version 8.v1
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ MAIN AREA ═══════════════ -->
+  <main id="main">
+
+    <!-- Top Bar -->
+    <div id="topbar">
+      <button id="menu-btn" onclick="toggleSidebar()">☰</button>
+      <div class="topbar-title">
+        <h1>⚗️ Mubra AI Chemistry Guru</h1>
+        <p id="topic-label" style="font-family:'Noto Sans Sinhala',sans-serif;">Organic Chemistry · ජෛව රසායනය</p>
+      </div>
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span>Online</span>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-messages">
+
+      <!-- Welcome Card -->
+      <div class="welcome-card" id="welcome-card">
+        <div class="welcome-avatar">🎓</div>
+        <h2>Mubra AI 8.v1 වෙත සාදරයෙන් පිළිගනිමු!</h2>
+        <p style="margin-top:8px;">
+          ආයුබෝවන්! මම ශ්‍රී ලංකාවේ A/L රසායනාස්ත්‍ර ශිෂ්‍යයන් සඳහා නිර්මාණය කළ
+          <strong style="color:var(--gold-400);">Mubra AI</strong> ගුරු භූමිකාව ඉටු කරන AI ගුරුවරයෙකි.
+          ඔබේ ඕනෑම රසායනාස්ත්‍ර ප්‍රශ්නයක් ඇසීමට හෝ ප්‍රශ්න පත්‍ර රූපයක් upload කිරීමට සිහිනෙන් ලාංකිකයෙකු ලෙස
+          සිංහලෙන්ම පිළිතුරු ලබා ගත හැකිය.
+        </p>
+        <div class="quick-prompts">
+          <button class="quick-prompt-btn" onclick="quickPrompt('Le Chatelier\\'s Principle සරලව පැහැදිළි කරන්න')">Le Chatelier's Principle</button>
+          <button class="quick-prompt-btn" onclick="quickPrompt('Organic chemistry functional groups ලැයිස්තුව')">Functional Groups</button>
+          <button class="quick-prompt-btn" onclick="quickPrompt('2023 A/L Chemistry ප්‍රශ්නපත්‍ර ගැන')">2023 Past Paper</button>
+          <button class="quick-prompt-btn" onclick="quickPrompt('$H_2SO_4$ හි ගුණ විස්තර කරන්න')">$H_2SO_4$ Properties</button>
+          <button class="quick-prompt-btn" onclick="quickPrompt('Electrochemistry ශ්‍රේෂ්ඨ සටහන් ලිව්ව')">Electrochemistry Notes</button>
+          <button class="quick-prompt-btn" onclick="quickPrompt('Kp සහ Kc ගැන වෙනස කෙසේද?')">Kp vs Kc</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Input Area -->
+    <div id="input-area">
+      <!-- Image Preview -->
+      <div id="image-preview-wrap">
+        <img id="image-preview" src="" alt="Preview" />
+        <div id="remove-image" onclick="removeImage()" title="Remove">✕</div>
+      </div>
+
+      <!-- Input Row -->
+      <div class="input-row">
+        <button class="input-btn" id="img-btn" onclick="document.getElementById('file-input').click()" title="රූපයක් Upload කරන්න">
+          📷
+        </button>
+        <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleImageSelect(event)" />
+
+        <textarea
+          id="user-input"
+          placeholder="රසායනාස්ත්‍ර ප්‍රශ්නයක් ඇසීමට මෙහි ටයිප් කරන්න... (Chemistry question in Sinhala or English)"
+          rows="1"
+          onkeydown="handleKeyDown(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+
+        <button class="input-btn" id="send-btn" onclick="sendMessage()" title="Send">
+          ➤
+        </button>
+      </div>
+      <div class="input-hint">Enter to send · Shift+Enter for new line · 📷 for image upload</div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ═══════════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════════
+  let chatHistory = [];
+  let base64Image = null;
+  let imageMimeType = null;
+  let currentTopic = 'organic';
+  let isLoading = false;
+
+  const topicLabels = {
+    organic:   'Organic Chemistry · ජෛව රසායනය',
+    inorganic: 'Inorganic Chemistry · අජෛව රසායනය',
+    physical:  'Physical Chemistry · භෞතික රසායනය'
+  };
+
+  // ═══════════════════════════════════════════════
+  // INIT — Build Past Papers Grid with pastpapers.wiki links
+  // ═══════════════════════════════════════════════
+
+  // pastpapers.wiki URL patterns (verified)
+  const paperLinks = {
+    2024: {
+      paper: 'https://pastpapers.wiki/2024-a-l-chemistry-past-paper-sinhala-medium/',
+      scheme: 'https://pastpapers.wiki/2024-a-l-chemistry-marking-scheme/'
+    },
+    2023: {
+      paper: 'https://pastpapers.wiki/20232024-a-l-chemistry-paper-sinhala-medium/',
+      scheme: 'https://pastpapers.wiki/20232024-a-l-chemistry-marking-scheme-sinhala-medium/'
+    },
+    2022: {
+      paper: 'https://pastpapers.wiki/2022-a-l-chemistry-past-paper-sinhala-medium/',
+      scheme: 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/'
+    },
+    2021: {
+      paper: 'https://pastpapers.wiki/2021-a-l-chemistry-past-paper-sinhala-medium/',
+      scheme: 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/'
+    },
+    2020: {
+      paper: 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/',
+      scheme: 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/'
+    },
+    2019: {
+      paper: 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/',
+      scheme: 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/'
+    }
+  };
+
+  // Default category page for older years
+  const defaultLink = 'https://pastpapers.wiki/category/g-c-e-advanced-level/a-l-science/a-l-chemistry/';
+
+  function getLinks(year) {
+    return paperLinks[year] || { paper: defaultLink, scheme: defaultLink };
+  }
+
+  function buildPapersGrid() {
+    const grid = document.getElementById('papers-grid');
+    for (let y = 2025; y >= 1985; y--) {
+      const links = getLinks(y);
+      const chip = document.createElement('div');
+      chip.className = 'year-chip' + (y >= 2015 ? ' recent' : '');
+
+      chip.innerHTML = `
+        <span>${y}</span>
+        <div class="chip-popup">
+          <a class="chip-popup-btn paper" href="${links.paper}" target="_blank" rel="noopener">
+            📄 Paper
+          </a>
+          <a class="chip-popup-btn scheme" href="${links.scheme}" target="_blank" rel="noopener">
+            ✅ Scheme
+          </a>
+          <div class="chip-popup-btn ask" onclick="event.stopPropagation(); quickPrompt('${y} A/L Chemistry ප්‍රශ්නපත්‍රය marking scheme සමඟ විස්තර කරන්න')">
+            🤖 Ask AI
+          </div>
+        </div>
+      `;
+
+      // Click on chip itself → AI ask
+      chip.addEventListener('click', (e) => {
+        if (e.target.closest('.chip-popup')) return;
+        quickPrompt(`${y} A/L Chemistry ප්‍රශ්නපත්‍රය marking scheme සමඟ විස්තර කරන්න`);
+      });
+
+      grid.appendChild(chip);
+    }
+  }
+
+  buildPapersGrid();
+
+  // ═══════════════════════════════════════════════
+  // SIDEBAR
+  // ═══════════════════════════════════════════════
+  function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    const ov = document.getElementById('sidebar-overlay');
+    sb.classList.toggle('open');
+    ov.classList.toggle('open');
+  }
+
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('open');
+  }
+
+  function setTopic(topic, el) {
+    currentTopic = topic;
+    document.getElementById('topic-label').textContent = topicLabels[topic];
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    if (window.innerWidth <= 768) closeSidebar();
+  }
+
+  // ═══════════════════════════════════════════════
+  // QUICK PROMPT
+  // ═══════════════════════════════════════════════
+  function quickPrompt(text) {
+    document.getElementById('user-input').value = text;
+    autoResize(document.getElementById('user-input'));
+    if (window.innerWidth <= 768) closeSidebar();
+    sendMessage();
+  }
+
+  // ═══════════════════════════════════════════════
+  // IMAGE HANDLING
+  // ═══════════════════════════════════════════════
+  function handleImageSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    imageMimeType = file.type;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      base64Image = dataUrl.split(',')[1];
+      document.getElementById('image-preview').src = dataUrl;
+      document.getElementById('image-preview-wrap').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  }
+
+  function removeImage() {
+    base64Image = null; imageMimeType = null;
+    document.getElementById('image-preview-wrap').style.display = 'none';
+    document.getElementById('image-preview').src = '';
+  }
+
+  // ═══════════════════════════════════════════════
+  // AUTO-RESIZE TEXTAREA
+  // ═══════════════════════════════════════════════
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 140) + 'px';
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  // RENDER HELPERS
+  // ═══════════════════════════════════════════════
+  function renderMarkdown(text) {
+    // Basic markdown-to-HTML conversion
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^# (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^---$/gm, '<hr>')
+      .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+      .replace(/^\* (.+)$/gm, '<li>$1</li>')
+      .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>[\s\S]+?<\/li>)/g, '<ul>$1</ul>')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function appendMessage(role, text, imgSrc = null) {
+    const container = document.getElementById('chat-messages');
+
+    // Hide welcome card on first message
+    const wc = document.getElementById('welcome-card');
+    if (wc) wc.style.display = 'none';
+
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = `msg-avatar ${role}`;
+    avatar.textContent = role === 'ai' ? '🎓' : '🧑‍🎓';
+
+    const bubble = document.createElement('div');
+    bubble.className = `msg-bubble ${role}`;
+
+    if (imgSrc) {
+      const img = document.createElement('img');
+      img.src = imgSrc;
+      bubble.appendChild(img);
+    }
+
+    if (role === 'ai') {
+      bubble.innerHTML += renderMarkdown(text);
+    } else {
+      bubble.textContent = text;
+    }
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    container.appendChild(row);
+
+    // Re-render KaTeX
+    if (window.renderMathInElement) {
+      try {
+        renderMathInElement(bubble, {
+          delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$',  right: '$',  display: false }
+          ],
+          throwOnError: false
+        });
+      } catch(e) {}
+    }
+
+    scrollToBottom();
+    return bubble;
+  }
+
+  function showTyping() {
+    const container = document.getElementById('chat-messages');
+    const row = document.createElement('div');
+    row.className = 'msg-row ai';
+    row.id = 'typing-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar ai';
+    avatar.textContent = '🎓';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'typing-bubble';
+    bubble.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    container.appendChild(row);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const tr = document.getElementById('typing-row');
+    if (tr) tr.remove();
+  }
+
+  function scrollToBottom() {
+    const c = document.getElementById('chat-messages');
+    c.scrollTop = c.scrollHeight;
+  }
+
+  // ═══════════════════════════════════════════════
+  // SEND MESSAGE
+  // ═══════════════════════════════════════════════
+  async function sendMessage() {
+    if (isLoading) return;
+
+    const input = document.getElementById('user-input');
+    const text = input.value.trim();
+    if (!text && !base64Image) return;
+
+    const displayText = text || '📷 රූපය පරීක්ෂා කරන්න';
+    const imgSrcForDisplay = base64Image ? document.getElementById('image-preview').src : null;
+
+    // Append user message
+    appendMessage('user', displayText, imgSrcForDisplay);
+
+    // Add to history
+    const userContent = [];
+    if (base64Image) {
+      userContent.push({ type: 'image', data: base64Image, mimeType: imageMimeType });
+    }
+    if (text) {
+      userContent.push({ type: 'text', text });
+    }
+    chatHistory.push({ role: 'user', parts: userContent, topic: currentTopic });
+
+    // Clear input
+    input.value = '';
+    input.style.height = 'auto';
+    removeImage();
+
+    // Disable send
+    isLoading = true;
+    document.getElementById('send-btn').disabled = true;
+    showTyping();
+
+    try {
+      const payload = {
+        message: text,
+        history: chatHistory.slice(0, -1),
+        topic: currentTopic,
+        image: base64Image ? { data: base64Image, mimeType: imageMimeType } : null
+      };
+
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Server error: ${res.status}`);
+      }
+
+      const data = await res.json();
+      hideTyping();
+
+      const aiText = data.reply || 'කරගත නොහැකිය. නැවත උත්සාහ කරන්න.';
+      appendMessage('ai', aiText);
+      chatHistory.push({ role: 'assistant', parts: [{ type: 'text', text: aiText }] });
+
+    } catch (err) {
+      hideTyping();
+      appendMessage('ai', `⚠️ **දෝෂයකි:** ${err.message}\n\nකරුණාකර නැවත උත්සාහ කරන්න. ගැටළු දිගටම පැවතුනහොත් admin ට දන්වන්න.`);
+    } finally {
+      isLoading = false;
+      document.getElementById('send-btn').disabled = false;
+      input.focus();
+    }
+  }
+
+  // ═══════════════════════════════════════════════
+  // LOGIN SYSTEM
+  // ═══════════════════════════════════════════════
+  const CORRECT_PASSWORD = 'sanjaya73';
+  const SESSION_KEY = 'mubra_auth';
+
+  function doLogin() {
+    const input = document.getElementById('pw-input');
+    const errorEl = document.getElementById('login-error');
+    const val = input.value;
+
+    if (val === CORRECT_PASSWORD) {
+      // Save session
+      sessionStorage.setItem(SESSION_KEY, '1');
+      // Animate out login screen
+      const ls = document.getElementById('login-screen');
+      ls.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      ls.style.opacity = '0';
+      ls.style.transform = 'scale(1.04)';
+      setTimeout(() => {
+        ls.style.display = 'none';
+        document.getElementById('app').style.display = 'flex';
+      }, 500);
+    } else {
+      // Wrong password — shake + error
+      input.classList.remove('error');
+      void input.offsetWidth; // trigger reflow
+      input.classList.add('error');
+      errorEl.style.display = 'block';
+      input.value = '';
+      setTimeout(() => input.classList.remove('error'), 500);
+    }
+  }
+
+  function togglePw() {
+    const inp = document.getElementById('pw-input');
+    const eye = document.getElementById('pw-eye');
+    if (inp.type === 'password') {
+      inp.type = 'text'; eye.textContent = '🙈';
+    } else {
+      inp.type = 'password'; eye.textContent = '👁️';
+    }
+  }
+
+  // Auto-unlock if already authenticated this session
+  (function checkSession() {
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+    }
+  })();
+</script>
+</body>
+</html>
